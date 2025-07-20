@@ -9,8 +9,8 @@
     "@tiptap/extension-link": "^3.0.7",
     "@tiptap/react": "^3.0.7",
     "@tiptap/starter-kit": "^3.0.7",
-    "ajv": "^8.12.0",
-    "ajv-keywords": "^5.1.0",
+    "ajv": "^6.12.6",
+    "ajv-keywords": "^3.5.2",
     "axios": "^1.8.4",
     "cra-template": "1.2.0",
     "date-fns": "^4.1.0",
@@ -24,9 +24,9 @@
     "reading-time": "^1.5.0"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
-    "test": "craco test",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "browserslist": {
@@ -42,7 +42,6 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "@eslint/js": "9.23.0",
     "autoprefixer": "^10.4.20",
     "eslint": "9.23.0",
@@ -55,8 +54,8 @@
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "overrides": {
-    "ajv": "^8.12.0",
-    "ajv-keywords": "^5.1.0",
-    "schema-utils": "^4.2.0"
+    "ajv": "^6.12.6",
+    "ajv-keywords": "^3.5.2",
+    "schema-utils": "^3.4.2"
   }
 }
