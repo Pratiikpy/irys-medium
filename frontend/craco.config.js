@@ -12,6 +12,14 @@ module.exports = {
       '@': path.resolve(__dirname, 'src'),
     },
     configure: (webpackConfig) => {
+      // Fix ajv compatibility issues
+      webpackConfig.resolve = {
+        ...webpackConfig.resolve,
+        fallback: {
+          ...webpackConfig.resolve.fallback,
+          "ajv/dist/compile/codegen": false,
+        },
+      };
       
       // Disable hot reload completely if environment variable is set
       if (config.disableHotReload) {
