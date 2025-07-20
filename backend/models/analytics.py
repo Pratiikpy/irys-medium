@@ -17,7 +17,7 @@ class PageViewCreate(PageViewBase):
 class PageView(PageViewBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    date: date = Field(default_factory=date.today)
+    view_date: date = Field(default_factory=date.today)
     
     class Config:
         json_encoders = {
@@ -38,7 +38,7 @@ class UserEngagementCreate(UserEngagementBase):
 class UserEngagement(UserEngagementBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    date: date = Field(default_factory=date.today)
+    engagement_date: date = Field(default_factory=date.today)
     
     class Config:
         json_encoders = {
@@ -83,7 +83,7 @@ class AuthorStats(BaseModel):
         }
 
 class PlatformStats(BaseModel):
-    date: date = Field(default_factory=date.today)
+    stats_date: date = Field(default_factory=date.today)
     total_users: int = Field(default=0)
     total_articles: int = Field(default=0)
     total_views: int = Field(default=0)
