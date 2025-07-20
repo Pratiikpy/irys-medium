@@ -19,7 +19,7 @@ class NFTBase(BaseModel):
     creator_wallet: str = Field(..., min_length=42, max_length=42)
     supply: int = Field(default=1, ge=1, le=10000)
     price: Optional[float] = Field(None, ge=0)
-    currency: str = Field(default="ETH", regex="^(ETH|MATIC|USDC)$")
+    currency: str = Field(default="ETH", pattern="^(ETH|MATIC|USDC)$")
     royalty_percentage: float = Field(default=10.0, ge=0, le=50)  # Percentage
 
 class NFTCreate(NFTBase):
@@ -27,7 +27,7 @@ class NFTCreate(NFTBase):
 
 class NFTUpdate(BaseModel):
     price: Optional[float] = Field(None, ge=0)
-    currency: Optional[str] = Field(None, regex="^(ETH|MATIC|USDC)$")
+    currency: Optional[str] = Field(None, pattern="^(ETH|MATIC|USDC)$")
     is_listed: Optional[bool] = None
 
 class NFT(NFTBase):
@@ -50,7 +50,7 @@ class NFTSaleBase(BaseModel):
     seller_wallet: str = Field(..., min_length=42, max_length=42)
     buyer_wallet: str = Field(..., min_length=42, max_length=42)
     price: float = Field(..., ge=0)
-    currency: str = Field(default="ETH", regex="^(ETH|MATIC|USDC)$")
+    currency: str = Field(default="ETH", pattern="^(ETH|MATIC|USDC)$")
     royalty_amount: float = Field(default=0, ge=0)
 
 class NFTSaleCreate(NFTSaleBase):
@@ -60,7 +60,7 @@ class NFTSale(NFTSaleBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     transaction_hash: Optional[str] = Field(None)
-    status: str = Field(default="pending", regex="^(pending|completed|failed)$")
+    status: str = Field(default="pending", pattern="^(pending|completed|failed)$")
     
     class Config:
         json_encoders = {

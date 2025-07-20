@@ -27,9 +27,9 @@ class PageView(PageViewBase):
 
 class UserEngagementBase(BaseModel):
     user_wallet: str = Field(..., min_length=42, max_length=42)
-    action_type: str = Field(..., regex="^(view|like|comment|share|tip|purchase|subscribe)$")
+    action_type: str = Field(..., pattern="^(view|like|comment|share|tip|purchase|subscribe)$")
     target_id: str = Field(..., min_length=1)  # article_id, comment_id, etc.
-    target_type: str = Field(..., regex="^(article|comment|author|nft)$")
+    target_type: str = Field(..., pattern="^(article|comment|author|nft)$")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class UserEngagementCreate(UserEngagementBase):
@@ -112,7 +112,7 @@ class TrendingArticle(BaseModel):
     comments_24h: int = Field(default=0)
     shares_24h: int = Field(default=0)
     engagement_score: float = Field(default=0.0)
-    trend_direction: str = Field(default="stable", regex="^(up|down|stable)$")
+    trend_direction: str = Field(default="stable", pattern="^(up|down|stable)$")
     
     class Config:
         json_encoders = {
@@ -150,7 +150,7 @@ class SearchQuery(BaseModel):
 
 class ContentPerformance(BaseModel):
     content_id: str = Field(..., min_length=1)
-    content_type: str = Field(..., regex="^(article|comment|nft)$")
+    content_type: str = Field(..., pattern="^(article|comment|nft)$")
     views: int = Field(default=0)
     likes: int = Field(default=0)
     comments: int = Field(default=0)

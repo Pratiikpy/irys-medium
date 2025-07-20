@@ -9,7 +9,7 @@ class TipBase(BaseModel):
     to_wallet: str = Field(..., min_length=42, max_length=42)
     article_id: Optional[str] = Field(None)
     amount: Decimal = Field(..., ge=Decimal('0.0001'))
-    currency: str = Field(default="ETH", regex="^(ETH|MATIC|USDC)$")
+    currency: str = Field(default="ETH", pattern="^(ETH|MATIC|USDC)$")
     message: Optional[str] = Field(None, max_length=500)
 
 class TipCreate(TipBase):
@@ -19,7 +19,7 @@ class Tip(TipBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     transaction_hash: Optional[str] = Field(None)
-    status: str = Field(default="pending", regex="^(pending|completed|failed)$")
+    status: str = Field(default="pending", pattern="^(pending|completed|failed)$")
     
     class Config:
         json_encoders = {
@@ -30,7 +30,7 @@ class Tip(TipBase):
 class PaidContentBase(BaseModel):
     article_id: str = Field(..., min_length=1)
     price: Decimal = Field(..., ge=Decimal('0.0001'))
-    currency: str = Field(default="ETH", regex="^(ETH|MATIC|USDC)$")
+    currency: str = Field(default="ETH", pattern="^(ETH|MATIC|USDC)$")
     description: Optional[str] = Field(None, max_length=500)
     preview_length: int = Field(default=500, ge=100, le=2000)  # Characters to show for free
 
@@ -39,7 +39,7 @@ class PaidContentCreate(PaidContentBase):
 
 class PaidContentUpdate(BaseModel):
     price: Optional[Decimal] = Field(None, ge=Decimal('0.0001'))
-    currency: Optional[str] = Field(None, regex="^(ETH|MATIC|USDC)$")
+    currency: Optional[str] = Field(None, pattern="^(ETH|MATIC|USDC)$")
     description: Optional[str] = Field(None, max_length=500)
     preview_length: Optional[int] = Field(None, ge=100, le=2000)
 
@@ -61,7 +61,7 @@ class PurchaseBase(BaseModel):
     buyer_wallet: str = Field(..., min_length=42, max_length=42)
     article_id: str = Field(..., min_length=1)
     amount: Decimal = Field(..., ge=Decimal('0.0001'))
-    currency: str = Field(default="ETH", regex="^(ETH|MATIC|USDC)$")
+    currency: str = Field(default="ETH", pattern="^(ETH|MATIC|USDC)$")
 
 class PurchaseCreate(PurchaseBase):
     pass
@@ -70,7 +70,7 @@ class Purchase(PurchaseBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     transaction_hash: Optional[str] = Field(None)
-    status: str = Field(default="pending", regex="^(pending|completed|failed)$")
+    status: str = Field(default="pending", pattern="^(pending|completed|failed)$")
     
     class Config:
         json_encoders = {
@@ -82,8 +82,8 @@ class SubscriptionBase(BaseModel):
     subscriber_wallet: str = Field(..., min_length=42, max_length=42)
     author_wallet: str = Field(..., min_length=42, max_length=42)
     amount: Decimal = Field(..., ge=Decimal('0.0001'))
-    currency: str = Field(default="ETH", regex="^(ETH|MATIC|USDC)$")
-    interval: str = Field(..., regex="^(monthly|yearly)$")
+    currency: str = Field(default="ETH", pattern="^(ETH|MATIC|USDC)$")
+    interval: str = Field(..., pattern="^(monthly|yearly)$")
 
 class SubscriptionCreate(SubscriptionBase):
     pass

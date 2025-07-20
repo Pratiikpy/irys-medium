@@ -42,7 +42,7 @@ class CommentResponse(Comment):
 class ReactionBase(BaseModel):
     user_wallet: str = Field(..., min_length=42, max_length=42)
     comment_id: str = Field(..., min_length=1)
-    reaction_type: str = Field(..., regex="^(like|dislike|love|laugh|wow|sad|angry)$")
+    reaction_type: str = Field(..., pattern="^(like|dislike|love|laugh|wow|sad|angry)$")
 
 class ReactionCreate(ReactionBase):
     pass
