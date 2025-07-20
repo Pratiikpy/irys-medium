@@ -19,6 +19,10 @@ module.exports = {
           ...webpackConfig.resolve.fallback,
           "ajv/dist/compile/codegen": false,
         },
+        alias: {
+          ...webpackConfig.resolve.alias,
+          "ajv-keywords": require.resolve("ajv-keywords"),
+        },
       };
       
       // Disable hot reload completely if environment variable is set
