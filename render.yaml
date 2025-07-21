@@ -36,9 +36,11 @@ services:
   - name: mirror-clone-frontend
     type: web
     env: static
-    buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
+    buildCommand: cd frontend && yarn install --legacy-peer-deps && yarn build
     staticPublishPath: frontend/build
     envVars:
+      - key: NODE_VERSION
+        value: 20.x
       - key: DISABLE_HOT_RELOAD
         value: true
       - key: GENERATE_SOURCEMAP
