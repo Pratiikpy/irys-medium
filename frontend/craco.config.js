@@ -16,7 +16,8 @@ module.exports = {
           fs: false,
           path: false,
           net: false,
-          tls: false
+          tls: false,
+          process: require.resolve('process/browser')
         }
       },
       plugins: [
