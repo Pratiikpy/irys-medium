@@ -9,6 +9,8 @@
     "@tiptap/extension-link": "^3.0.7",
     "@tiptap/react": "^3.0.7",
     "@tiptap/starter-kit": "^3.0.7",
+    "ajv": "^6.12.6",
+    "ajv-keywords": "^3.5.2",
     "axios": "^1.8.4",
     "cra-template": "1.2.0",
     "date-fns": "^4.1.0",
@@ -18,8 +20,6 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.5.1",
     "react-scripts": "5.0.1",
-    "ajv": "^6.12.6",
-    "ajv-keywords": "^3.5.2",
     "react-syntax-highlighter": "^15.6.1",
     "reading-time": "^1.5.0"
   },
@@ -42,6 +42,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@eslint/js": "9.23.0",
     "autoprefixer": "^10.4.20",
     "eslint": "9.23.0",
