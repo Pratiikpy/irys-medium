@@ -3,91 +3,80 @@ import { useWallet } from '../Common/WalletConnect';
 import apiService from '../../services/api';
 
 const AnalyticsDashboard = () => {
-  const { walletAddress } = useWallet();
+  const { isConnected, walletAddress } = useWallet();
   const [platformStats, setPlatformStats] = useState(null);
-  const [articleStats, setArticleStats] = useState(null);
+  const [authorStats, setAuthorStats] = useState(null);
   const [trendingArticles, setTrendingArticles] = useState([]);
+  const [popularSearches, setPopularSearches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [timeframe, setTimeframe] = useState('7d');
+  const [activeTab, setActiveTab] = useState('platform');
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [timeframe]);
+    fetchAnalyticsData();
+  }, [walletAddress]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalyticsData = async () => {
     setLoading(true);
-    setError(null);
-
     try {
-      // Fetch platform stats
-      const platformData = await apiService.getPlatformStats();
-      setPlatformStats(platformData);
+      const [platform, trending, searches] = await Promise.all([
+        apiService.getPlatformStats(),
+        apiService.getTrendingArticles(10),
+        apiService.getPopularSearches(10, 7)
+      ]);
 
-      // Fetch trending articles
-      const trendingData = await apiService.getTrendingArticles(10);
-      setTrendingArticles(trendingData);
+      setPlatformStats(platform);
+      setTrendingArticles(trending);
+      setPopularSearches(searches);
 
-      // Fetch article stats if wallet is connected
-      if (walletAddress) {
-        const articleData = await apiService.getAuthorStats(walletAddress);
-        setArticleStats(articleData);
+      // Fetch author-specific stats if connected
+      if (isConnected && walletAddress) {
+        try {
+          const authorData = await apiService.getAuthorStats(walletAddress);
+          setAuthorStats(authorData);
+        } catch (error) {
+          console.error('Error fetching author stats:', error);
+        }
       }
-    } catch (err) {
-      console.error('Error fetching analytics:', err);
-      setError('Failed to load analytics data');
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const formatNumber = (num) => {
-    if (!num) return '0';
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num?.toString() || '0';
   };
 
-  const formatPercentage = (value) => {
-    if (!value) return '0%';
-    return `${(parseFloat(value) * 100).toFixed(1)}%`;
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-800 rounded w-1/3 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="h-12 bg-gray-800 rounded w-1/3 mb-8"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-800 rounded"></div>
+                <div key={i} className="h-32 bg-gray-800 rounded-lg"></div>
               ))}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {[...Array(2)].map((_, i) => (
-                <div key={i} className="h-96 bg-gray-800 rounded"></div>
-              ))}
+              <div className="h-80 bg-gray-800 rounded-lg"></div>
+              <div className="h-80 bg-gray-800 rounded-lg"></div>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-400 text-6xl mb-4">📊</div>
-          <h2 className="text-2xl font-bold text-white mb-4">Analytics Error</h2>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <button
-            onClick={fetchAnalytics}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
-            Retry
-          </button>
         </div>
       </div>
     );
@@ -95,235 +84,295 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Analytics Dashboard</h1>
-            <p className="text-gray-400">
-              Platform insights and performance metrics
-            </p>
-          </div>
-          <select
-            value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
-            className="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-            <option value="1y">Last year</option>
-          </select>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-4">Analytics Dashboard</h1>
+          <p className="text-gray-400">
+            Track platform performance and discover trending content.
+          </p>
         </div>
 
-        {/* Platform Stats */}
-        {platformStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Articles</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatNumber(platformStats.total_articles)}
-                  </p>
+        {/* Tabs */}
+        <div className="flex space-x-8 mb-8">
+          <button
+            onClick={() => setActiveTab('platform')}
+            className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+              activeTab === 'platform'
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Platform Analytics
+          </button>
+          {isConnected && (
+            <button
+              onClick={() => setActiveTab('author')}
+              className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+                activeTab === 'author'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Your Analytics
+            </button>
+          )}
+        </div>
+
+        {/* Platform Analytics */}
+        {activeTab === 'platform' && (
+          <div className="space-y-8">
+            {/* Platform Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Total Articles</p>
+                    <p className="text-white text-2xl font-bold">
+                      {formatNumber(platformStats?.total_articles)}
+                    </p>
+                  </div>
+                  <div className="text-blue-400 text-2xl">📄</div>
                 </div>
-                <div className="text-blue-400 text-3xl">📄</div>
               </div>
-              <div className="mt-2">
-                <span className={`text-sm ${platformStats.articles_growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {platformStats.articles_growth >= 0 ? '↗' : '↘'} {formatPercentage(Math.abs(platformStats.articles_growth))}
-                </span>
-                <span className="text-gray-400 text-sm ml-1">vs last period</span>
+
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Total Authors</p>
+                    <p className="text-white text-2xl font-bold">
+                      {formatNumber(platformStats?.total_authors)}
+                    </p>
+                  </div>
+                  <div className="text-green-400 text-2xl">👥</div>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Total Views</p>
+                    <p className="text-white text-2xl font-bold">
+                      {formatNumber(platformStats?.total_views)}
+                    </p>
+                  </div>
+                  <div className="text-yellow-400 text-2xl">👁️</div>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Articles Today</p>
+                    <p className="text-white text-2xl font-bold">
+                      {formatNumber(platformStats?.articles_today)}
+                    </p>
+                  </div>
+                  <div className="text-purple-400 text-2xl">🆕</div>
+                </div>
               </div>
             </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Authors</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatNumber(platformStats.total_authors)}
-                  </p>
-                </div>
-                <div className="text-green-400 text-3xl">👥</div>
+            {/* Trending Articles and Popular Searches */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Trending Articles */}
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <h3 className="text-xl font-semibold text-white mb-6">
+                  🔥 Trending Articles
+                </h3>
+                
+                {trendingArticles.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">No trending articles yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {trendingArticles.map((article, index) => (
+                      <div key={article.id} className="flex items-start space-x-4">
+                        <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {index + 1}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-medium line-clamp-2">
+                            {article.title}
+                          </h4>
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-400">
+                            <span>👁️ {formatNumber(article.views)}</span>
+                            <span>📅 {formatDate(article.published_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="mt-2">
-                <span className={`text-sm ${platformStats.authors_growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {platformStats.authors_growth >= 0 ? '↗' : '↘'} {formatPercentage(Math.abs(platformStats.authors_growth))}
-                </span>
-                <span className="text-gray-400 text-sm ml-1">vs last period</span>
-              </div>
-            </div>
 
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Views</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatNumber(platformStats.total_views)}
-                  </p>
-                </div>
-                <div className="text-yellow-400 text-3xl">👁️</div>
-              </div>
-              <div className="mt-2">
-                <span className={`text-sm ${platformStats.views_growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {platformStats.views_growth >= 0 ? '↗' : '↘'} {formatPercentage(Math.abs(platformStats.views_growth))}
-                </span>
-                <span className="text-gray-400 text-sm ml-1">vs last period</span>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Comments</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatNumber(platformStats.total_comments)}
-                  </p>
-                </div>
-                <div className="text-purple-400 text-3xl">💬</div>
-              </div>
-              <div className="mt-2">
-                <span className={`text-sm ${platformStats.comments_growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {platformStats.comments_growth >= 0 ? '↗' : '↘'} {formatPercentage(Math.abs(platformStats.comments_growth))}
-                </span>
-                <span className="text-gray-400 text-sm ml-1">vs last period</span>
+              {/* Popular Searches */}
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                <h3 className="text-xl font-semibold text-white mb-6">
+                  🔍 Popular Searches (7 days)
+                </h3>
+                
+                {popularSearches.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">No search data available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {popularSearches.map((search, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center">
+                            <span className="text-gray-300 text-xs font-bold">
+                              {index + 1}
+                            </span>
+                          </div>
+                          <span className="text-gray-300">
+                            {search.query || search.term}
+                          </span>
+                        </div>
+                        <span className="text-gray-400 text-sm">
+                          {search.count || search.searches} searches
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Author Stats */}
-          {articleStats && (
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-white mb-6">Your Performance</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <p className="text-gray-400 text-sm">Articles Published</p>
-                    <p className="text-2xl font-bold text-white">{articleStats.articles_published}</p>
+        {/* Author Analytics */}
+        {activeTab === 'author' && isConnected && (
+          <div className="space-y-8">
+            {authorStats ? (
+              <>
+                {/* Author Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-400 text-sm">Your Articles</p>
+                        <p className="text-white text-2xl font-bold">
+                          {authorStats.total_articles || 0}
+                        </p>
+                      </div>
+                      <div className="text-blue-400 text-2xl">📝</div>
+                    </div>
                   </div>
-                  <div className="text-blue-400 text-2xl">📝</div>
+
+                  <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-400 text-sm">Total Views</p>
+                        <p className="text-white text-2xl font-bold">
+                          {formatNumber(authorStats.total_views)}
+                        </p>
+                      </div>
+                      <div className="text-green-400 text-2xl">👁️</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-400 text-sm">Avg. Views</p>
+                        <p className="text-white text-2xl font-bold">
+                          {Math.round(authorStats.avg_views_per_article) || 0}
+                        </p>
+                      </div>
+                      <div className="text-yellow-400 text-2xl">📊</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-400 text-sm">This Month</p>
+                        <p className="text-white text-2xl font-bold">
+                          {authorStats.articles_this_month || 0}
+                        </p>
+                      </div>
+                      <div className="text-purple-400 text-2xl">📅</div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <p className="text-gray-400 text-sm">Total Views</p>
-                    <p className="text-2xl font-bold text-white">{formatNumber(articleStats.total_views)}</p>
+                {/* Author Performance */}
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-white mb-6">
+                    📈 Your Performance
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <h4 className="text-gray-300 font-medium mb-4">Engagement Metrics</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Total Comments</span>
+                          <span className="text-white">{authorStats.total_comments || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Tips Received</span>
+                          <span className="text-green-400">{authorStats.tips_received || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Article Shares</span>
+                          <span className="text-white">{authorStats.total_shares || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-gray-300 font-medium mb-4">Content Stats</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Avg. Reading Time</span>
+                          <span className="text-white">
+                            {Math.round(authorStats.avg_reading_time) || 0} min
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Total Word Count</span>
+                          <span className="text-white">
+                            {formatNumber(authorStats.total_word_count)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Most Used Tag</span>
+                          <span className="text-indigo-400">
+                            {authorStats.most_used_tag || 'None'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-yellow-400 text-2xl">👁️</div>
                 </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <p className="text-gray-400 text-sm">Total Comments</p>
-                    <p className="text-2xl font-bold text-white">{formatNumber(articleStats.total_comments)}</p>
-                  </div>
-                  <div className="text-purple-400 text-2xl">💬</div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                  <div>
-                    <p className="text-gray-400 text-sm">Avg Views per Article</p>
-                    <p className="text-2xl font-bold text-white">{formatNumber(articleStats.avg_views_per_article)}</p>
-                  </div>
-                  <div className="text-green-400 text-2xl">📈</div>
-                </div>
+              </>
+            ) : (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">📊</div>
+                <h3 className="text-2xl font-bold text-white mb-4">No Analytics Available</h3>
+                <p className="text-gray-400 mb-8">
+                  Start writing articles to see your analytics here!
+                </p>
               </div>
-            </div>
-          )}
-
-          {/* Trending Articles */}
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-6">Trending Articles</h3>
-            
-            <div className="space-y-4">
-              {trendingArticles.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 text-4xl mb-2">📊</div>
-                  <p className="text-gray-400">No trending articles yet</p>
-                </div>
-              ) : (
-                trendingArticles.map((article, index) => (
-                  <div key={article.id} className="flex items-center space-x-4 p-3 bg-gray-700 rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-400 w-8">
-                      #{index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-white font-medium truncate">{article.title}</h4>
-                      <p className="text-gray-400 text-sm">
-                        by {article.author_name || 'Anonymous'}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white font-semibold">{formatNumber(article.views)}</p>
-                      <p className="text-gray-400 text-xs">views</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Additional Metrics */}
-        {platformStats && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <h4 className="text-lg font-semibold text-white mb-4">Engagement Metrics</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Avg Reading Time:</span>
-                  <span className="text-white">{platformStats.avg_reading_time} min</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Comments per Article:</span>
-                  <span className="text-white">{platformStats.avg_comments_per_article}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Engagement Rate:</span>
-                  <span className="text-white">{formatPercentage(platformStats.engagement_rate)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <h4 className="text-lg font-semibold text-white mb-4">Content Distribution</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Technology:</span>
-                  <span className="text-white">{formatPercentage(platformStats.category_distribution?.technology || 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Finance:</span>
-                  <span className="text-white">{formatPercentage(platformStats.category_distribution?.finance || 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Culture:</span>
-                  <span className="text-white">{formatPercentage(platformStats.category_distribution?.culture || 0)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-              <h4 className="text-lg font-semibold text-white mb-4">Platform Health</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Active Users:</span>
-                  <span className="text-white">{formatNumber(platformStats.active_users)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Retention Rate:</span>
-                  <span className="text-white">{formatPercentage(platformStats.retention_rate)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Uptime:</span>
-                  <span className="text-white">{formatPercentage(platformStats.uptime)}</span>
-                </div>
-              </div>
-            </div>
+        {!isConnected && activeTab === 'author' && (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">🔐</div>
+            <h3 className="text-2xl font-bold text-white mb-4">Connect Wallet</h3>
+            <p className="text-gray-400 mb-8">
+              Connect your wallet to view your personal analytics.
+            </p>
           </div>
         )}
       </div>
@@ -331,4 +380,4 @@ const AnalyticsDashboard = () => {
   );
 };
 
-export default AnalyticsDashboard; 
+export default AnalyticsDashboard;
