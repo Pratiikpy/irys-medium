@@ -36,7 +36,7 @@ services:
   - name: mirror-clone-frontend
     type: web
     env: static
-    buildCommand: cd frontend && yarn install --legacy-peer-deps && yarn build
+    buildCommand: cd frontend && node build.js
     staticPublishPath: frontend/build
     envVars:
       - key: NODE_VERSION
