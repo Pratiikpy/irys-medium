@@ -4,237 +4,255 @@ import apiService from '../../services/api';
 
 const RevenueDashboard = () => {
   const { walletAddress } = useWallet();
-  const [stats, setStats] = useState(null);
+  const [revenueData, setRevenueData] = useState(null);
+  const [tipsReceived, setTipsReceived] = useState([]);
+  const [purchasesReceived, setPurchasesReceived] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [timeframe, setTimeframe] = useState('30d'); // 7d, 30d, 90d, 1y
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (walletAddress) {
-      fetchRevenueStats();
+      fetchRevenueData();
     }
-  }, [walletAddress, timeframe]);
+  }, [walletAddress]);
 
-  const fetchRevenueStats = async () => {
+  const fetchRevenueData = async () => {
     setLoading(true);
-    setError(null);
-
     try {
-      const data = await apiService.getRevenueStats(walletAddress);
-      setStats(data);
-    } catch (err) {
-      console.error('Error fetching revenue stats:', err);
-      setError('Failed to load revenue statistics');
+      const [revenue, tips, purchases] = await Promise.all([
+        apiService.getRevenueStats(walletAddress),
+        apiService.getTipsReceived(walletAddress, 50),
+        apiService.getUserPurchases(walletAddress, 50)
+      ]);
+
+      setRevenueData(revenue);
+      setTipsReceived(tips);
+      setPurchasesReceived(purchases);
+    } catch (error) {
+      console.error('Error fetching revenue data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (amount, currency = 'ETH') => {
-    if (!amount) return '0';
-    const num = parseFloat(amount);
-    return `${num.toFixed(4)} ${currency}`;
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
-  const formatPercentage = (value) => {
-    if (!value) return '0%';
-    return `${(parseFloat(value) * 100).toFixed(1)}%`;
+  const formatAddress = (address) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   if (loading) {
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-20 bg-gray-700 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <div className="text-center">
-          <div className="text-red-400 text-4xl mb-2">📊</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Revenue Dashboard</h3>
-          <p className="text-gray-400">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <div className="text-center">
-          <div className="text-gray-400 text-4xl mb-2">📊</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Revenue Dashboard</h3>
-          <p className="text-gray-400">No revenue data available yet</p>
+      <div className="animate-pulse space-y-6">
+        <div className="h-32 bg-gray-800 rounded-lg"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-800 rounded-lg"></div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-white">Revenue Analytics</h3>
-        <select
-          value={timeframe}
-          onChange={(e) => setTimeframe(e.target.value)}
-          className="bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-1 text-sm"
+    <div className="space-y-6">
+      {/* Revenue Overview */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h3 className="text-xl font-semibold text-white mb-6">Revenue Overview</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-green-900 bg-opacity-30 border border-green-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-300 text-sm">Total Tips</p>
+                <p className="text-white text-2xl font-bold">
+                  {revenueData?.total_tips || '0.00'} ETH
+                </p>
+              </div>
+              <div className="text-green-400 text-2xl">💰</div>
+            </div>
+          </div>
+
+          <div className="bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-300 text-sm">Content Sales</p>
+                <p className="text-white text-2xl font-bold">
+                  {revenueData?.total_content_sales || '0.00'} ETH
+                </p>
+              </div>
+              <div className="text-blue-400 text-2xl">🔒</div>
+            </div>
+          </div>
+
+          <div className="bg-purple-900 bg-opacity-30 border border-purple-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-300 text-sm">NFT Sales</p>
+                <p className="text-white text-2xl font-bold">
+                  {revenueData?.total_nft_sales || '0.00'} ETH
+                </p>
+              </div>
+              <div className="text-purple-400 text-2xl">🎨</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-gray-700">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-300 text-lg font-semibold">Total Revenue:</span>
+            <span className="text-green-400 text-2xl font-bold">
+              {revenueData?.total_revenue || '0.00'} ETH
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-4">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+            activeTab === 'overview'
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
         >
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last 90 days</option>
-          <option value="1y">Last year</option>
-        </select>
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('tips')}
+          className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+            activeTab === 'tips'
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Tips Received
+        </button>
+        <button
+          onClick={() => setActiveTab('sales')}
+          className={`py-2 px-4 rounded-lg font-medium transition-colors ${
+            activeTab === 'sales'
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Content Sales
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {/* Total Revenue */}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(stats.total_revenue)}
-              </p>
-            </div>
-            <div className="text-green-400 text-2xl">💰</div>
-          </div>
-          <div className="mt-2">
-            <span className={`text-sm ${stats.revenue_growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {stats.revenue_growth >= 0 ? '↗' : '↘'} {formatPercentage(Math.abs(stats.revenue_growth))}
-            </span>
-            <span className="text-gray-400 text-sm ml-1">vs last period</span>
-          </div>
-        </div>
-
-        {/* Tips Received */}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Tips Received</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(stats.tips_received)}
-              </p>
-            </div>
-            <div className="text-yellow-400 text-2xl">💝</div>
-          </div>
-          <div className="mt-2">
-            <span className="text-gray-400 text-sm">
-              {stats.tips_count} tips
-            </span>
-          </div>
-        </div>
-
-        {/* Paid Content */}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Paid Content</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(stats.paid_content_revenue)}
-              </p>
-            </div>
-            <div className="text-blue-400 text-2xl">🔒</div>
-          </div>
-          <div className="mt-2">
-            <span className="text-gray-400 text-sm">
-              {stats.paid_content_sales} sales
-            </span>
-          </div>
-        </div>
-
-        {/* Subscriptions */}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Subscriptions</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(stats.subscription_revenue)}
-              </p>
-            </div>
-            <div className="text-purple-400 text-2xl">📅</div>
-          </div>
-          <div className="mt-2">
-            <span className="text-gray-400 text-sm">
-              {stats.active_subscribers} active
-            </span>
-          </div>
-        </div>
-
-        {/* NFT Sales */}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">NFT Sales</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(stats.nft_revenue)}
-              </p>
-            </div>
-            <div className="text-indigo-400 text-2xl">🎨</div>
-          </div>
-          <div className="mt-2">
-            <span className="text-gray-400 text-sm">
-              {stats.nft_sales} sold
-            </span>
-          </div>
-        </div>
-
-        {/* Average per Article */}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-sm">Avg per Article</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(stats.avg_revenue_per_article)}
-              </p>
-            </div>
-            <div className="text-green-400 text-2xl">📈</div>
-          </div>
-          <div className="mt-2">
-            <span className="text-gray-400 text-sm">
-              {stats.total_articles} articles
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="border-t border-gray-700 pt-6">
-        <h4 className="text-lg font-semibold text-white mb-4">Recent Activity</h4>
-        <div className="space-y-3">
-          {stats.recent_activity?.slice(0, 5).map((activity, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl">
-                  {activity.type === 'tip' && '💝'}
-                  {activity.type === 'purchase' && '🔒'}
-                  {activity.type === 'subscription' && '📅'}
-                  {activity.type === 'nft' && '🎨'}
-                </div>
-                <div>
-                  <p className="text-white font-medium">{activity.description}</p>
-                  <p className="text-gray-400 text-sm">{activity.date}</p>
-                </div>
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+          <h4 className="text-lg font-semibold text-white mb-4">Recent Activity</h4>
+          
+          {/* Recent Tips */}
+          <div className="mb-6">
+            <h5 className="text-gray-300 font-medium mb-3">Recent Tips</h5>
+            {tipsReceived.slice(0, 5).length === 0 ? (
+              <p className="text-gray-400 text-sm">No tips received yet</p>
+            ) : (
+              <div className="space-y-3">
+                {tipsReceived.slice(0, 5).map((tip) => (
+                  <div key={tip.id} className="flex items-center justify-between bg-gray-900 rounded-lg p-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-semibold">
+                          {tip.from_wallet?.charAt(2) || '?'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium">
+                          Tip from {formatAddress(tip.from_wallet)}
+                        </p>
+                        <p className="text-gray-400 text-xs">
+                          {formatDate(tip.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-green-400 font-semibold">
+                      +{tip.amount} {tip.currency}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="text-right">
-                <p className="text-white font-semibold">{formatCurrency(activity.amount)}</p>
-                <p className="text-gray-400 text-sm">{activity.currency}</p>
-              </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === 'tips' && (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+          <h4 className="text-lg font-semibold text-white mb-4">All Tips Received</h4>
+          
+          {tipsReceived.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">💰</div>
+              <p className="text-gray-400">No tips received yet</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Keep writing great content to receive tips from readers!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {tipsReceived.map((tip) => (
+                <div key={tip.id} className="bg-gray-900 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold">
+                          {tip.from_wallet?.charAt(2) || '?'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">
+                          From {formatAddress(tip.from_wallet)}
+                        </p>
+                        <p className="text-gray-400 text-sm">
+                          {formatDate(tip.created_at)}
+                        </p>
+                        {tip.message && (
+                          <p className="text-gray-300 text-sm mt-1 italic">
+                            "{tip.message}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-green-400 font-bold text-lg">
+                        +{tip.amount} {tip.currency}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'sales' && (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+          <h4 className="text-lg font-semibold text-white mb-4">Content Sales</h4>
+          
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">🔒</div>
+            <p className="text-gray-400">No content sales yet</p>
+            <p className="text-gray-500 text-sm mt-2">
+              Create premium content to start earning from sales!
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default RevenueDashboard; 
+export default RevenueDashboard;
