@@ -16,13 +16,12 @@ module.exports = {
           fs: false,
           path: false,
           net: false,
-          tls: false,
-          process: require.resolve('process/browser')
+          tls: false
         }
       },
       plugins: [
         new webpack.ProvidePlugin({
-          process: 'process/browser',
+          process: 'process',
           Buffer: ['buffer', 'Buffer']
         })
       ]
