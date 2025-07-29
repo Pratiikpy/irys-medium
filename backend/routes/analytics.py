@@ -190,7 +190,7 @@ async def get_platform_stats():
     today = date.today()
     
     # Get today's stats or create new ones
-    stats = await db.platform_stats.find_one({"date": today.isoformat()})
+    stats = await db.platform_stats.find_one({"stats_date": today.isoformat()})
     
     if not stats:
         # Calculate platform stats
@@ -205,7 +205,7 @@ async def get_platform_stats_history(days: int = 30):
     
     start_date = date.today() - timedelta(days=days)
     
-    cursor = db.platform_stats.find({"date": {"$gte": start_date.isoformat()}}).sort("date", -1)
+    cursor = db.platform_stats.find({"stats_date": {"$gte": start_date.isoformat()}}).sort("stats_date", -1)
     stats = await cursor.to_list(length=days)
     
     return [PlatformStats(**stat) for stat in stats]
@@ -396,7 +396,7 @@ async def calculate_platform_stats() -> PlatformStats:
     yesterday = today - timedelta(days=1)
     
     # Total counts
-    total_users = len(await db.authors.distinct("wallet"))
+    total_users = len(await db.authors.distinct("wallet_address"))
     total_articles = await db.articles.count_documents({})
     total_views = await db.pageviews.count_documents({})
     total_likes = await db.user_engagement.count_documents({"action_type": "like"})
@@ -419,7 +419,7 @@ async def calculate_platform_stats() -> PlatformStats:
     })
     
     return PlatformStats(
-        date=today,
+        stats_date=today,
         total_users=total_users,
         total_articles=total_articles,
         total_views=total_views,

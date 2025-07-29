@@ -20,8 +20,7 @@ from routes.nft import router as nft_router
 from routes.analytics import router as analytics_router
 
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv()
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -32,7 +31,7 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI(title="Mirror Clone API", description="Decentralized publishing platform with Irys storage")
 
 # Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+api_router = APIRouter()
 
 
 # Define Models (keep existing ones for compatibility)
@@ -66,9 +65,6 @@ async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
 
-# Include the router in the main app
-app.include_router(api_router)
-
 # Include our new feature routes
 app.include_router(articles_router)
 app.include_router(authors_router)
@@ -77,6 +73,9 @@ app.include_router(comments_router)
 app.include_router(monetization_router)
 app.include_router(nft_router)
 app.include_router(analytics_router)
+
+# Include the main router in the app
+app.include_router(api_router, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

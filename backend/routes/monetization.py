@@ -24,7 +24,7 @@ async def create_tip(tip_data: TipCreate):
     if result.inserted_id:
         # Update author stats
         await db.authors.update_one(
-            {"wallet": tip.to_wallet},
+            {"wallet_address": tip.to_wallet},
             {"$inc": {"total_tips_received": float(tip.amount)}}
         )
         
@@ -193,7 +193,7 @@ async def create_subscription(subscription_data: SubscriptionCreate):
     if result.inserted_id:
         # Update author stats
         await db.authors.update_one(
-            {"wallet": subscription.author_wallet},
+            {"wallet_address": subscription.author_wallet},
             {"$inc": {"active_subscribers": 1}}
         )
         
@@ -235,7 +235,7 @@ async def cancel_subscription(subscription_id: str):
     subscription = await db.subscriptions.find_one({"id": subscription_id})
     if subscription:
         await db.authors.update_one(
-            {"wallet": subscription["author_wallet"]},
+            {"wallet_address": subscription["author_wallet"]},
             {"$inc": {"active_subscribers": -1}}
         )
     
@@ -252,7 +252,8 @@ async def get_revenue_stats(wallet: str):
     total_tips = sum(Decimal(tip["amount"]) for tip in tips)
     
     # Calculate paid content revenue
-    paid_content_cursor = db.paid_content.find({"article_id": {"$in": [tip["article_id"] for tip in tips if tip.get("article_id")]}})
+    article_ids = [tip["article_id"] for tip in tips if "article_id" in tip and tip["article_id"]]
+    paid_content_cursor = db.paid_content.find({"article_id": {"$in": article_ids}})
     paid_content = await paid_content_cursor.to_list(length=1000)
     total_paid_content = sum(Decimal(pc["total_revenue"]) for pc in paid_content)
     

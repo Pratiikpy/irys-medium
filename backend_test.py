@@ -19,20 +19,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Get backend URL from frontend .env file
-def get_backend_url():
-    """Get backend URL from frontend .env file"""
-    try:
-        with open('/app/frontend/.env', 'r') as f:
-            for line in f:
-                if line.startswith('REACT_APP_BACKEND_URL='):
-                    base_url = line.split('=', 1)[1].strip()
-                    return f"{base_url}/api"
-        return "http://localhost:8001/api"  # fallback
-    except Exception as e:
-        print(f"Error reading frontend .env: {e}")
-        return "http://localhost:8001/api"
-
-BASE_URL = get_backend_url()
+BASE_URL = "http://localhost:8000/api"
 print(f"Testing backend at: {BASE_URL}")
 
 class BackendTester:
